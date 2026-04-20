@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kasam">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Şifre Kasam</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c26;
+    --border: #2a2a3a;
+    --accent: #00ff88;
+    --accent2: #0088ff;
+    --danger: #ff4455;
+    --text: #e8e8f0;
+    --muted: #6666aa;
+    --radius: 12px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .screen { display: none; min-height: 100dvh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* INSTALL BANNER */
+  #installBanner {
+    display: none;
+    background: linear-gradient(135deg, #00ff8820, #0088ff20);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin: 12px 20px;
+    font-size: 13px;
+    color: var(--text);
+    align-items: center;
+    gap: 10px;
+  }
+
+  #installBanner.show { display: flex; }
+  #installBanner span { flex: 1; }
+  #installBtn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+  }
+
+  /* LOCK SCREEN */
+  #lockScreen {
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #lockScreen::before {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(0,255,136,0.15) 0%, transparent 70%);
+    top: -50px; right: -80px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  #lockScreen::after {
+    content: '';
+    position: absolute;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(0,136,255,0.1) 0%, transparent 70%);
+    bottom: 100px; left: -50px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .lock-logo {
+    font-size: 64px;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 0 20px rgba(0,255,136,0.4));
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .lock-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .lock-title span { color: var(--accent); }
+
+  .lock-sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 48px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .lock-form { width: 100%; max-width: 320px; }
+
+  .input-group { position: relative; margin-bottom: 16px; }
+
+  .input-group input {
+    width: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 48px 16px 16px;
+    font-size: 16px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 2px;
+  }
+
+  .input-group input:focus { border-color: var(--accent); }
+  .input-group input::placeholder { letter-spacing: 0; color: var(--muted); font-family: 'Syne', sans-serif; }
+
+  .eye-btn {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 18px; padding: 4px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+
+  .lock-hint { margin-top: 20px; text-align: center; font-size: 13px; color: var(--muted); }
+  .lock-hint a { color: var(--accent2); text-decoration: none; }
+
+  /* MAIN */
+  #mainScreen { padding: 0; }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+
+  .topbar-title { font-size: 20px; font-weight: 800; }
+  .topbar-title span { color: var(--accent); }
+  .topbar-actions { display: flex; gap: 8px; }
+
+  .icon-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .icon-btn:active { transform: scale(0.95); }
+
+  .search-bar {
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-bar input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    font-family: 'Syne', sans-serif;
+    transition: border-color 0.2s;
+  }
+
+  .search-bar input:focus { border-color: var(--accent2); }
+  .search-bar input::placeholder { color: var(--muted); }
+
+  .entries-list {
+    flex: 1;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    padding-bottom: 90px;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; line-height: 1.5; }
+
+  .entry-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .entry-card:active { border-color: var(--accent2); background: var(--surface2); }
+
+  .entry-icon {
+    width: 44px; height: 44px;
+    background: var(--surface2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .entry-info { flex: 1; min-width: 0; }
+
+  .entry-name {
+    font-size: 15px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .entry-user {
+    font-size: 12px; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .copy-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--accent);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .copy-btn:active { transform: scale(0.9); background: var(--accent); color: #000; }
+
+  .del-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--danger);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .fab {
+    position: fixed;
+    bottom: calc(28px + var(--safe-bottom));
+    right: 24px;
+    width: 58px; height: 58px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    font-size: 26px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,255,136,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 20;
+  }
+
+  .fab:active { transform: scale(0.9); }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+    padding-bottom: calc(32px + var(--safe-bottom));
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.3s ease;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+
+  .form-field { margin-bottom: 14px; }
+
+  .form-field label {
+    display: block;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .form-field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    font-family: 'Syne', sans-serif;
+    transition: border-color 0.2s;
+  }
+
+  .form-field input:focus { border-color: var(--accent); }
+
+  .pw-row { display: flex; gap: 8px; }
+  .pw-row input { flex: 1; font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+
+  .gen-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--accent2);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .strength-bar { height: 4px; border-radius: 2px; margin-top: 6px; transition: all 0.3s; }
+
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+
+  .btn-cancel {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    color: var(--text);
+    font-size: 15px; font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-save {
+    flex: 2;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    color: #000;
+    font-size: 15px; font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-save:active { transform: scale(0.97); }
+
+  .detail-field {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .detail-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+  .detail-value { font-family: 'Space Mono', monospace; font-size: 14px; word-break: break-all; }
+  .detail-value.hidden { letter-spacing: 4px; font-size: 16px; }
+
+  .count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: calc(90px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 200;
+    white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div class="screen active" id="lockScreen">
+  <div class="lock-logo">🔐</div>
+  <div class="lock-title">Şifre <span>Kasam</span></div>
+  <p class="lock-sub">// encrypted · local · private</p>
+
+  <div class="lock-form" id="setupForm" style="display:none">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;text-align:center">İlk kullanım — ana şifreni belirle</p>
+    <div class="input-group">
+      <input type="password" id="setupPw1" placeholder="Ana şifre" maxlength="50">
+      <button class="eye-btn" onclick="toggleEye('setupPw1',this)">👁</button>
+    </div>
+    <div class="input-group">
+      <input type="password" id="setupPw2" placeholder="Tekrar gir" maxlength="50">
+    </div>
+    <button class="btn-primary" onclick="setupMaster()">Kasayı Oluştur 🔒</button>
+  </div>
+
+  <div class="lock-form" id="loginForm" style="display:none">
+    <div class="input-group">
+      <input type="password" id="loginPw" placeholder="Ana şifre" maxlength="50" onkeydown="if(event.key==='Enter')unlock()">
+      <button class="eye-btn" onclick="toggleEye('loginPw',this)">👁</button>
+    </div>
+    <button class="btn-primary" onclick="unlock()">Kasayı Aç 🔓</button>
+    <p class="lock-hint"><a href="#" onclick="resetAll()">Sıfırla (tüm veriler silinir)</a></p>
+  </div>
+</div>
+
+<!-- MAIN SCREEN -->
+<div class="screen" id="mainScreen">
+  <div class="topbar">
+    <div class="topbar-title">Şifre <span>Kasam</span></div>
+    <div class="topbar-actions">
+      <span class="count-badge" id="countBadge">0</span>
+      <button class="icon-btn" onclick="lockApp()">🔒</button>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="🔍  Ara..." oninput="renderEntries()">
+  </div>
+
+  <div id="installBanner">
+    <span>📲 Ana ekrana ekle — uygulama gibi çalışsın!</span>
+    <button id="installBtn" onclick="installPWA()">Ekle</button>
+  </div>
+
+  <div class="entries-list" id="entriesList"></div>
+  <button class="fab" onclick="openAddModal()">+</button>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Yeni Şifre Ekle</div>
+    <div class="form-field">
+      <label>Platform / Uygulama</label>
+      <input type="text" id="f_name" placeholder="Instagram, WiFi, Netflix...">
+    </div>
+    <div class="form-field">
+      <label>İkon</label>
+      <input type="text" id="f_icon" placeholder="Emoji 🔑" maxlength="2" style="font-size:22px;text-align:center">
+    </div>
+    <div class="form-field">
+      <label>Kullanıcı Adı / E-posta</label>
+      <input type="text" id="f_user" placeholder="kullanici@email.com" autocomplete="off">
+    </div>
+    <div class="form-field">
+      <label>Şifre</label>
+      <div class="pw-row">
+        <input type="password" id="f_pw" placeholder="••••••••" autocomplete="new-password" oninput="checkStrength()">
+        <button class="gen-btn" onclick="generatePw()">🎲 Üret</button>
+      </div>
+      <div class="strength-bar" id="strengthBar"></div>
+    </div>
+    <div class="form-field">
+      <label>Not (isteğe bağlı)</label>
+      <input type="text" id="f_note" placeholder="Ek bilgi...">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('addModal')">İptal</button>
+      <button class="btn-save" onclick="saveEntry()">Kaydet ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="font-size:32px" id="d_icon"></div>
+      <div class="modal-title" id="d_name" style="margin:0"></div>
+    </div>
+    <div class="detail-field">
+      <div>
+        <div class="detail-label">Kullanıcı Adı</div>
+        <div class="detail-value" id="d_user"></div>
+      </div>
+      <button class="copy-btn" onclick="copyField('user')">📋</button>
+    </div>
+    <div class="detail-field">
+      <div>
+        <div class="detail-label">Şifre</div>
+        <div class="detail-value hidden" id="d_pw">••••••••</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="copy-btn" onclick="togglePwView()">👁</button>
+        <button class="copy-btn" onclick="copyField('pw')">📋</button>
+      </div>
+    </div>
+    <div class="detail-field" id="d_note_row" style="display:none">
+      <div>
+        <div class="detail-label">Not</div>
+        <div class="detail-value" id="d_note"></div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button class="btn-cancel" style="flex:1" onclick="closeModal('detailModal')">Kapat</button>
+      <button class="del-btn" style="flex:1;padding:14px;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:'Syne',sans-serif" onclick="deleteEntry()">🗑 Sil</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== SERVICE WORKER =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ===== PWA INSTALL =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  deferredPrompt = null;
+});
+
+async function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('installBanner').classList.remove('show');
+  }
+  deferredPrompt = null;
+}
+
+// ===== CRYPTO =====
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+  );
+}
+
+async function encrypt(text, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
+  const buf = new Uint8Array(16 + 12 + ct.byteLength);
+  buf.set(salt, 0); buf.set(iv, 16); buf.set(new Uint8Array(ct), 28);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function decrypt(b64, password) {
+  const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const key = await deriveKey(password, buf.slice(0, 16));
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28));
+  return new TextDecoder().decode(pt);
+}
+
+// ===== STATE =====
+let masterPw = null, entries = [], currentDetailIdx = null, pwVisible = false;
+
+// ===== INIT =====
+window.onload = () => {
+  const has = localStorage.getItem('kasa_master');
+  document.getElementById(has ? 'loginForm' : 'setupForm').style.display = 'block';
+};
+
+// ===== SETUP =====
+async function setupMaster() {
+  const p1 = document.getElementById('setupPw1').value;
+  const p2 = document.getElementById('setupPw2').value;
+  if (!p1) return toast('Ana şifre boş olamaz');
+  if (p1.length < 4) return toast('En az 4 karakter gir');
+  if (p1 !== p2) return toast('Şifreler eşleşmiyor');
+  localStorage.setItem('kasa_master', await encrypt('VALID', p1));
+  localStorage.setItem('kasa_entries', await encrypt('[]', p1));
+  masterPw = p1; entries = [];
+  showMain();
+}
+
+// ===== LOGIN =====
+async function unlock() {
+  const pw = document.getElementById('loginPw').value;
+  if (!pw) return toast('Şifre gir');
+  try {
+    const check = await decrypt(localStorage.getItem('kasa_master'), pw);
+    if (check !== 'VALID') throw new Error();
+    masterPw = pw;
+    entries = JSON.parse(await decrypt(localStorage.getItem('kasa_entries'), pw));
+    showMain();
+  } catch {
+    toast('❌ Yanlış şifre');
+    document.getElementById('loginPw').value = '';
+  }
+}
+
+function showMain() {
+  document.getElementById('lockScreen').classList.remove('active');
+  document.getElementById('mainScreen').classList.add('active');
+  renderEntries();
+}
+
+function lockApp() {
+  masterPw = null; entries = [];
+  document.getElementById('mainScreen').classList.remove('active');
+  document.getElementById('lockScreen').classList.add('active');
+  document.getElementById('loginPw').value = '';
+  document.getElementById('searchInput').value = '';
+}
+
+function resetAll() {
+  if (!confirm('Tüm veriler silinecek. Emin misin?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ===== RENDER =====
+function renderEntries() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('entriesList');
+  document.getElementById('countBadge').textContent = entries.length;
+  const filtered = entries.filter(e => e.name.toLowerCase().includes(q) || (e.user||'').toLowerCase().includes(q));
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">${entries.length === 0 ? '🔑' : '🔍'}</div><p>${entries.length === 0 ? '+ butonuna bas ve\nilk şifreni ekle' : 'Sonuç bulunamadı'}</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const idx = entries.indexOf(e);
+    return `<div class="entry-card" onclick="openDetail(${idx})">
+      <div class="entry-icon">${e.icon||'🔑'}</div>
+      <div class="entry-info">
+        <div class="entry-name">${esc(e.name)}</div>
+        <div class="entry-user">${esc(e.user)||'—'}</div>
+      </div>
+      <button class="copy-btn" onclick="event.stopPropagation();quickCopy(${idx})">📋</button>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ===== ADD =====
+function openAddModal() {
+  ['f_name','f_icon','f_user','f_pw','f_note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('strengthBar').style.cssText = '';
+  document.getElementById('addModal').classList.add('open');
+}
+
+async function saveEntry() {
+  const name = document.getElementById('f_name').value.trim();
+  const pw = document.getElementById('f_pw').value;
+  if (!name) return toast('Platform adı gerekli');
+  if (!pw) return toast('Şifre gerekli');
+  entries.unshift({ name, icon: document.getElementById('f_icon').value||'🔑', user: document.getElementById('f_user').value.trim(), pw, note: document.getElementById('f_note').value.trim(), added: Date.now() });
+  await saveToStorage();
+  closeModal('addModal');
+  renderEntries();
+  toast('✓ Kaydedildi');
+}
+
+async function saveToStorage() {
+  localStorage.setItem('kasa_entries', await encrypt(JSON.stringify(entries), masterPw));
+}
+
+// ===== DETAIL =====
+function openDetail(idx) {
+  currentDetailIdx = idx; pwVisible = false;
+  const e = entries[idx];
+  document.getElementById('d_icon').textContent = e.icon||'🔑';
+  document.getElementById('d_name').textContent = e.name;
+  document.getElementById('d_user').textContent = e.user||'—';
+  const dpw = document.getElementById('d_pw');
+  dpw.textContent = '••••••••'; dpw.dataset.real = e.pw; dpw.classList.add('hidden');
+  document.getElementById('d_note_row').style.display = e.note ? 'flex' : 'none';
+  if (e.note) document.getElementById('d_note').textContent = e.note;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function togglePwView() {
+  const el = document.getElementById('d_pw');
+  pwVisible = !pwVisible;
+  el.textContent = pwVisible ? el.dataset.real : '••••••••';
+  el.classList.toggle('hidden', !pwVisible);
+}
+
+async function deleteEntry() {
+  if (!confirm('Bu kayıt silinecek?')) return;
+  entries.splice(currentDetailIdx, 1);
+  await saveToStorage();
+  closeModal('detailModal');
+  renderEntries();
+  toast('🗑 Silindi');
+}
+
+// ===== COPY =====
+function copyField(field) {
+  const e = entries[currentDetailIdx];
+  copyToClipboard(field === 'pw' ? e.pw : e.user);
+}
+
+function quickCopy(idx) { copyToClipboard(entries[idx].pw); }
+
+function copyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast('📋 Kopyalandı'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('📋 Kopyalandı');
+  }
+}
+
+// ===== GENERATE =====
+function generatePw() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*';
+  let pw = '';
+  for (let i = 0; i < 16; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  const input = document.getElementById('f_pw');
+  input.value = pw; input.type = 'text';
+  setTimeout(() => input.type = 'password', 2000);
+  checkStrength();
+  toast('🎲 Şifre üretildi');
+}
+
+function checkStrength() {
+  const pw = document.getElementById('f_pw').value;
+  let s = 0;
+  if (pw.length >= 8) s++; if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw)) s++; if (/[0-9]/.test(pw)) s++; if (/[^A-Za-z0-9]/.test(pw)) s++;
+  const bar = document.getElementById('strengthBar');
+  bar.style.background = ['','#ff4455','#ff8844','#ffcc00','#44dd88','#00ff88'][s]||'';
+  bar.style.width = ['0%','20%','40%','60%','80%','100%'][s]||'0%';
+}
+
+// ===== UTILS =====
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function toggleEye(id, btn) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+  btn.textContent = input.type === 'password' ? '👁' : '🙈';
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
